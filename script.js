@@ -2,9 +2,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-input');
     const resultsContainer = document.getElementById('results');
 
+    let debounceTimeout;
+
     searchInput.addEventListener('input', function() {
-        const query = searchInput.value.toLowerCase();
-        fetchResults(query);
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            const query = searchInput.value.toLowerCase();
+            fetchResults(query);
+        }, 300); // Agrega un retraso para mejorar el rendimiento
     });
 
     async function fetchResults(query) {
