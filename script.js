@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
         debounceTimeout = setTimeout(() => {
             const query = searchInput.value.toLowerCase();
             fetchResults(query);
-        }, 300); // Agrega un retraso para mejorar el rendimiento
+        }, 300);
     });
 
     async function fetchResults(query) {
@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     );
 
                     for (const item of filteredResults) {
+                        console.log(`Processing item: ${item.name}, Type: ${key}`);
+                        console.log('Item data:', item);
+
                         const filmNames = await Promise.all(item.films.map(async filmUrl => {
                             try {
                                 const filmResponse = await fetch(filmUrl);
@@ -54,7 +57,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }));
 
-                        // Fetch homeworld information if available
                         let homeworld = 'Unknown';
                         if (item.homeworld) {
                             try {
@@ -66,12 +68,39 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
 
+                        let species = 'Unknown';
+                        if (key === 'people') {
+                            if (item.species && item.species.length > 0) {
+                                console.log('Species URL:', item.species[0]);
+                                try {
+                                    const speciesResponse = await fetch(item.species[0]);
+                                    if (!speciesResponse.ok) {
+                                        throw new Error(`HTTP error! status: ${speciesResponse.status}`);
+                                    }
+                                    const speciesData = await speciesResponse.json();
+                                    species = speciesData.name;
+                                    console.log('Species data:', speciesData);
+                                } catch (error) {
+                                    console.error('Error fetching species data:', error);
+                                    species = 'Error fetching species';
+                                }
+                            } else {
+                                console.log('No species URL provided, assuming Human');
+                                species = 'Human';
+                            }
+                        } else if (key === 'species') {
+                            species = item.name;
+                        }
+
                         results.add({
                             name: item.name,
                             type: key,
                             films: filmNames.join(', '),
-                            homeworld: homeworld
+                            homeworld: homeworld,
+                            species: species
                         });
+
+                        await delay(100); // Espera 100ms entre solicitudes
                     }
                 } catch (error) {
                     console.error(`Error fetching ${key}:`, error);
@@ -79,7 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Sort results before displaying
         const sortedResults = Array.from(results).sort((a, b) => a.name.localeCompare(b.name));
 
         resultsContainer.innerHTML = sortedResults.map(result => `
@@ -90,9 +118,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p class="card-text">Type: ${result.type}</p>
                         <p class="card-text">Films: ${result.films}</p>
                         <p class="card-text">Homeworld: ${result.homeworld}</p>
+                        <p class="card-text">Species: ${result.species}</p>
                     </div>
                 </div>
             </div>
         `).join('');
+    }
+
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 });
